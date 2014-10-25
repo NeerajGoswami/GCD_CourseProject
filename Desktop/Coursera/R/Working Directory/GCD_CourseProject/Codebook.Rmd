@@ -1,4 +1,5 @@
 --------------------------------XXX--------------------------------
+
 SETUP:
 Multiple data sets with data collected from the accelerometers from the Samsung Galaxy S smartphone are to be merged into a single one. The expected outcome is a single tidy data set with relevant columns as specified, that can be used for further analyses.
 
@@ -65,6 +66,7 @@ Temporary character array to hold names of columns in output as they're being ch
 
 
 OUTPUT
+
 tidy_data : 
 Data frame, generated as per instructions in assignment and adhering to tidy data norms in Hadley Wickham's Tidy Data paper
 
