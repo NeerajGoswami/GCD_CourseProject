@@ -1,0 +1,73 @@
+--------------------------------XXX--------------------------------
+SETUP:
+Multiple data sets with data collected from the accelerometers from the Samsung Galaxy S smartphone are to be merged into a single one. The expected outcome is a single tidy data set with relevant columns as specified, that can be used for further analyses.
+
+RAW DATA:
+Brief and detailed descriptions of the different data points provided can be found in the 'features.txt' and 'features_info.txt' files in the raw data. I'll not repeat those here.
+
+Following are the data frame variables used in the script while reading in the inputs. Each of them has been used to store data from eponymous files with raw data.
+X_test
+X_train
+y_test
+y_train
+subject_test
+subject_train
+activity_labels
+
+Apart from this, 
+col_names_measurements is a data frame used to store column names read in from features.txt 
+
+INTERMEDIATE / TRANSFORMATION VARIABLES:
+These variables have been used in making and storing transformations through the script. Following is a list of these:
+
+X : Data frame created by merging X_test & X_train
+
+y : Data frame created by merging y_test & y_train
+
+subjects : 
+Data frame created by merging subject_test & subject_train
+
+consol_data : 
+Data frame with 561 columns, created by merging X,subjects & y
+
+relv_cols_mean : 
+Numeric array used to store column indices for column names ending with "mean()"
+
+relv_cols_std : 
+Numeric array used to store column indices for column names ending with "std()"
+
+relv_cols : 
+Numeric array created by combining relv_cols_mean & rel_col_std
+
+columns : 
+Numeric variable to store the no. of columns in consol_data
+
+relv_dataset : 
+Data frame with relevant columns, extracted from consol_data
+
+activity_codes : 
+Factor array with activity codes from consol_data
+
+activity_desc : 
+Factor array with activity codes replaced by descriptions
+
+consol_data2 : 
+Data frame created by merging relv_dataset, subjects & activity_desc
+
+relv_cols_names : 
+Factor array with names for relevant columns, extracted from col_names_measurements
+
+temp : 
+Temporary data frame to hold average values once they're calculated in the loop
+
+temp_names : 
+Temporary character array to hold names of columns in output as they're being changed
+
+
+OUTPUT
+tidy_data : 
+Data frame, generated as per instructions in assignment and adhering to tidy data norms in Hadley Wickham's Tidy Data paper
+
+tidy_data.txt : A text file with the tidy_data set
+
+--------------------------------XXX--------------------------------

@@ -1,0 +1,215 @@
+------------------------------------------------------------------
+_____________________
+This README file describes the flow for the script run_analysis.R, which generates a tidy data set (as per Hadley Wickham's Tidy Data paper) from the given data.
+
+An underlying assumption here is that all files are present in the working directory. Reading them from the url was an option, but 
+a. I'm short on time, and 
+b. It counts for nothing
+
+Anyway, below are the steps followed by the script. A lot of this comes directly from the comments in the script.
+______________________
+
+1. No one likes warnings. We start off by hiding them before we proceed further.
+
+```{r}
+options(warn=-1)
+```
+
+2. Next, we read in the measurements from the X_train & X_test files. Both without headers, of course.
+
+```{r}
+X_test <- read.table("X_test.txt", header= FALSE)
+X_train <- read.table("X_train.txt", header= FALSE)
+```
+
+3. Similarly, we read in the activity codes for each row of measurements...
+
+```{r}
+y_test <- read.table("y_test.txt", header= FALSE)
+y_train <- read.table("y_train.txt", header= FALSE) 
+```
+
+
+4. ...and the corresponding subject nos.
+
+```{r}
+subject_test <- read.table("subject_test.txt",header=FALSE)
+subject_train <- read.table("subject_train.txt",header=FALSE)
+```
+
+5. Next thing to do is to merge the respective test & train data sets. Merging in this case is simply putting in the train data rows below the test data rows. We start with X_test & X_train...
+
+```{r}
+X <- rbind(X_test, X_train)
+```
+
+6. ...move on to activity ids...
+
+```{r}
+y <- rbind(y_test,y_train)
+```
+
+7. ...and finally end with subject nos. 
+
+```{r}
+subjects <- rbind(subject_test,subject_train)
+```
+
+8. That done, we now combine all the above into a single data set. There's no primary key so far, which means cbind works fine for now. The consolidated data set now has 561 columns, not all of which are required for this project.
+
+```{r}
+consol_data <- cbind(X,subjects,y)
+```
+
+
+9. We read in the column names from the 'features' file. These are to be used in naming columns later.
+
+```{r}
+col_names_measurements <- read.table("features.txt",header=FALSE)
+```
+
+10. So far, so good. Coming to business, we now need to gather data that's relevant for our purpose. To do this, we first identify the relevant column indices.
+We identify and store column names ending in "mean()" or "std()".
+(Note: The criteria used for extraction here should be acceptable. Refer to https://class.coursera.org/getdata-008/forum/thread?thread_id=24 if you don't believe me.)
+
+Keeping things simple (and slightly inefficient), we deal with this in two steps:
+First, the indices for "mean()"
+
+```{r}
+relv_cols_mean <- grep("mean()",col_names_measurements[[2]],fixed = TRUE)
+```
+
+And then the ones for "std()"
+
+```{r}
+relv_cols_std <- grep("std()",col_names_measurements[[2]],fixed = TRUE)
+```
+
+11. Combine both and voila - we have the array of indices!
+Which we then proceed to sort.
+
+```{r}
+relv_cols <- sort(c(relv_cols_mean,relv_cols_std))
+```
+
+
+12. Armed with the indices, we can now extract the mean and standard deviations for each row of measurement. 
+But before doing that, we do two things:
+
+    a. We note the no. of columns in the consolidated data -                 useful while looping through the data frame.
+
+```{r}
+columns <- ncol(consol_data)
+```
+
+    b. We initialize the matrix that will store the relevant measurement data
+
+```{r}
+relv_dataset <- NULL
+```
+
+We now loop through the consolidated data set with 561 columns and extract the ones we want. We do this by adding relevant columns to our relv_dataset as we come across them.
+
+```{r}
+for (i in 1:columns) {
+    if (i %in% relv_cols) {
+        relv_dataset <- cbind(relv_dataset,consol_data[,i])
+        } 
+        
+}
+```
+
+
+13. Great! Now that we have the relevant columns stored, let's have a look at the activity column. This seems to have activity codes - that won't do! What we need here is descriptive activity names.
+To replace the codes with names, we first read the descriptions from the 'activity_labels.txt' file.
+
+```{r}
+activity_labels <- read.table("activity_labels.txt", header=FALSE)
+```
+
+14. Next, we (quite cleverly) read in the activity code array from the consolidated data set as factors
+
+```{r}
+activity_codes <- as.factor(consol_data[,columns])
+```
+
+15. We can now directly replace the codes with descriptions in the array. God bless factors!
+
+```{r}
+activity_desc <- activity_codes
+levels(activity_desc) <- activity_labels[[2]]
+```
+
+16. We have the relevant measurements, the activity descriptions and the subject nos. Let's merge them to create another consolidated data set - a smaller and better one, with 68 columns.
+
+```{r}
+consol_data2 <- cbind(relv_dataset,subjects,activity_desc)
+```
+
+17. The column naming part comes next. First, for the measurements using the relevant column indices we'd stored earlier:
+
+```{r}
+relv_cols_names <- col_names_measurements[relv_cols,2]
+colnames(consol_data2) <- relv_cols_names
+```
+
+18. And then for the Subject and Activity columns
+
+```{r}
+colnames(consol_data2)[no_relv_cols-1] <- "Subject"
+colnames(consol_data2)[no_relv_cols] <- "Activity"
+```
+
+19. All that's left now is to generate the tidy data set with average values for each variable-activity-subject combination. Sounds easy, but isn't.
+
+We start off by initializing the tidy data set with Subject and Activity columns 
+
+```{r}
+tidy_data <- unique(consol_data2[,c("Subject","Activity")])
+tidy_data <- tidy_data[order(tidy_data$Subject,tidy_data$Activity),]
+colnames(tidy_data) <- c("Subject","Activity")
+```
+
+20. Then, we append the data_set with average values for measurements. In this, we use a temporary variable to store a column of values as we merge it with our tidy data set. 
+
+```{r}
+no_relv_cols <- ncol(consol_data2)
+for (col in 1:(no_relv_cols-2)) {
+    temp <- aggregate(consol_data2[,col],list(consol_data2$Subject,
+            consol_data2$Activity),mean)
+    colnames(temp) <- c("Subject","Activity","Value")
+    tidy_data <- merge(tidy_data,temp, by.x=c("Subject","Activity"),by.y=c("Subject","Activity"))
+ }
+```
+
+
+21. A small cosmetic change - we order the tidy data set by Subject:
+
+```{r}
+tidy_data <- tidy_data[order(tidy_data$Subject),]
+```
+
+
+22. And the part easy to miss: we replace the profane characters in column names with more civil ones.
+
+```{r}
+temp_names <- gsub("-","_",colnames(consol_data2))
+temp_names <- gsub("\\(|\\)","",temp_names)
+## Assign column names to tidy data set
+colnames(tidy_data)[3:no_relv_cols] <- temp_names[1:(no_relv_cols-2)]
+```
+
+
+23. Finally, we deliver ourselves of the past 14 hours of ordeal by writing the tidy data set onto a txt file
+
+```{r}
+write.table(tidy_data,file="tidy_data.txt",row.names=FALSE)
+```
+
+24. In closing we mention that the tidy data set generated is indeed tidy. This statement can be verified by reading in the file through the following code snippet:
+
+```{r}
+read.table("tidy_data.txt",header = TRUE)
+```
+
+--------------------------------XXX-------------------------------
